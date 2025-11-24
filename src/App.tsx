@@ -9,9 +9,7 @@ import "react-image-crop/dist/ReactCrop.css";
 import originalPoster from "./image.png";
 import BGimg from "./BG.jpeg";
 
-type SharePlatform = "whatsapp" | "instagram" | "facebook";
-
-const WhatsAppIcon = () => (
+const ShareIcon = () => (
   <svg
     aria-hidden
     focusable="false"
@@ -19,33 +17,7 @@ const WhatsAppIcon = () => (
     viewBox="0 0 24 24"
     fill="currentColor"
   >
-    <path d="M20.5 3.5a10 10 0 0 0-14.2 0 10 10 0 0 0-1.5 12.1L4 22l6.4-1.8a10 10 0 0 0 10.1-16.7zm-1.9 11.2c-.2.6-1.1 1.1-1.9.7-1-.5-2.3-1-3.6-2.3-1.5-1.5-2.1-2.9-2.3-3.5-.3-.8 0-1.6.6-1.8.5-.2.7-.2 1.1 0l.9.4c.3.2.5.4.6.7.1.3.1.6-.1.9l-.3.5c-.1.1-.1.3 0 .5.2.4.7 1.2 1.6 2 .9.9 1.6 1.2 2 .1.2-.3.4-.3.7-.2l1.1.5c.3.1.5.3.6.6.1.3.1.6 0 .9z" />
-  </svg>
-);
-
-const InstagramIcon = () => (
-  <svg
-    aria-hidden
-    focusable="false"
-    className="h-5 w-5"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-  >
-    <rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" strokeWidth="2" />
-    <circle cx="12" cy="12" r="3.2" />
-    <circle cx="17.5" cy="6.5" r="1.2" />
-  </svg>
-);
-
-const FacebookIcon = () => (
-  <svg
-    aria-hidden
-    focusable="false"
-    className="h-5 w-5"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-  >
-    <path d="M13.5 10.5V9.2c0-.5.3-.9.9-.9H17V6h-2.8c-2.2 0-3.6 1.4-3.6 3.7v1.8H8v3h2.6V22h3v-5.5H17l.5-3h-3.9z" />
+    <path d="M17 3a3 3 0 1 1-2.65 4.33l-5.14 2.57a3 3 0 0 1 0 1.2l5.14 2.57a3 3 0 1 1-.77 1.55l-5.17-2.58A3 3 0 1 1 7 8a2.98 2.98 0 0 1 2.49 1.33l5.17-2.58A3 3 0 0 1 17 3Zm0 2a1 1 0 1 0 .001 1.999A1 1 0 0 0 17 5ZM7 10a1 1 0 1 0 0 2 1 1 0 0 0 0-2Zm10 5a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" />
   </svg>
 );
 
@@ -276,7 +248,7 @@ const App = () => {
     link.click();
   };
 
-  const handleShare = async (platform: SharePlatform) => {
+  const handleShare = async () => {
     const assets = buildPosterAssets();
     if (!assets) return;
 
@@ -310,38 +282,20 @@ const App = () => {
       }
     }
 
-    switch (platform) {
-      case "whatsapp":
-        window.open(
-          `https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`,
-          "_blank"
+    try {
+      if (navigatorAvailable && "clipboard" in navigator) {
+        await navigator.clipboard.writeText(shareMessage);
+        alert(
+          "Poster ready! Use Download Poster to save the image, then share it on your favourite platform. We've copied the caption for you."
         );
-        break;
-      case "facebook":
-        window.open(
-          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-            window.location.href
-          )}&quote=${encodeURIComponent(shareMessage)}`,
-          "_blank"
+      } else {
+        alert(
+          "Poster ready! Download it, then share it on your favourite platform."
         );
-        break;
-      case "instagram":
-        try {
-          if (navigatorAvailable && "clipboard" in navigator) {
-            await navigator.clipboard.writeText(shareMessage);
-            alert(
-              "Poster ready! Use Download Poster to save the image, then upload it to your Instagram story. We've copied the caption for you."
-            );
-          } else {
-            alert(
-              "Poster ready! Download it and upload to your Instagram story manually."
-            );
-          }
-        } catch (err) {
-          alert("Poster ready! Download it and upload to your Instagram story manually.");
-          console.error("Could not copy caption", err);
-        }
-        break;
+      }
+    } catch (err) {
+      alert("Poster ready! Download it, then share it on your favourite platform.");
+      console.error("Could not copy caption", err);
     }
   };
 
@@ -417,32 +371,16 @@ const App = () => {
           </button>
           <div className="mt-2 flex flex-col gap-2">
             <span className="text-sm font-semibold text-white text-center uppercase tracking-wide">
-              Share your poster
+              Share
             </span>
             <div className="flex flex-wrap justify-center gap-2">
               <button
-                onClick={() => handleShare("whatsapp")}
-                className="flex items-center gap-2 rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-600 disabled:bg-gray-400"
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-blue-600 disabled:bg-gray-400"
                 disabled={!uploadedImage}
               >
-                <WhatsAppIcon />
-                WhatsApp
-              </button>
-              <button
-                onClick={() => handleShare("instagram")}
-                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-pink-500 via-purple-500 to-yellow-500 px-3 py-2 text-sm font-semibold text-white shadow-md transition disabled:bg-gray-400 disabled:from-gray-500 disabled:via-gray-500 disabled:to-gray-500"
-                disabled={!uploadedImage}
-              >
-                <InstagramIcon />
-                Instagram
-              </button>
-              <button
-                onClick={() => handleShare("facebook")}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700 disabled:bg-gray-400"
-                disabled={!uploadedImage}
-              >
-                <FacebookIcon />
-                Facebook
+                <ShareIcon />
+                Share Poster
               </button>
             </div>
           </div>
