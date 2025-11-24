@@ -9,6 +9,46 @@ import "react-image-crop/dist/ReactCrop.css";
 import originalPoster from "./image.png";
 import BGimg from "./BG.jpeg";
 
+type SharePlatform = "whatsapp" | "instagram" | "facebook";
+
+const WhatsAppIcon = () => (
+  <svg
+    aria-hidden
+    focusable="false"
+    className="h-5 w-5"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
+    <path d="M20.5 3.5a10 10 0 0 0-14.2 0 10 10 0 0 0-1.5 12.1L4 22l6.4-1.8a10 10 0 0 0 10.1-16.7zm-1.9 11.2c-.2.6-1.1 1.1-1.9.7-1-.5-2.3-1-3.6-2.3-1.5-1.5-2.1-2.9-2.3-3.5-.3-.8 0-1.6.6-1.8.5-.2.7-.2 1.1 0l.9.4c.3.2.5.4.6.7.1.3.1.6-.1.9l-.3.5c-.1.1-.1.3 0 .5.2.4.7 1.2 1.6 2 .9.9 1.6 1.2 2 .1.2-.3.4-.3.7-.2l1.1.5c.3.1.5.3.6.6.1.3.1.6 0 .9z" />
+  </svg>
+);
+
+const InstagramIcon = () => (
+  <svg
+    aria-hidden
+    focusable="false"
+    className="h-5 w-5"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="5" ry="5" fill="none" stroke="currentColor" strokeWidth="2" />
+    <circle cx="12" cy="12" r="3.2" />
+    <circle cx="17.5" cy="6.5" r="1.2" />
+  </svg>
+);
+
+const FacebookIcon = () => (
+  <svg
+    aria-hidden
+    focusable="false"
+    className="h-5 w-5"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
+    <path d="M13.5 10.5V9.2c0-.5.3-.9.9-.9H17V6h-2.8c-2.2 0-3.6 1.4-3.6 3.7v1.8H8v3h2.6V22h3v-5.5H17l.5-3h-3.9z" />
+  </svg>
+);
+
 const App = () => {
   const [uploadedImage, setUploadedImage] = useState<HTMLImageElement | null>(
     null
@@ -109,24 +149,23 @@ const App = () => {
     setEnteredName(event.target.value);
   };
 
-  const handleDownload = () => {
-    if (!uploadedImage || !posterLoaded) {
+  const drawPosterToCanvas = () => {
+    if (!uploadedImage || !posterLoaded || !posterRef.current) {
       console.log("Please upload and crop an image first.");
-      return;
+      return null;
     }
 
-    if (!posterRef.current) return;
-
+    const basePoster = posterRef.current;
     const canvas = document.createElement("canvas");
-    canvas.width = posterRef.current.naturalWidth;
-    canvas.height = posterRef.current.naturalHeight;
+    canvas.width = basePoster.naturalWidth;
+    canvas.height = basePoster.naturalHeight;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) return null;
 
-    ctx.drawImage(posterRef.current, 0, 0);
+    ctx.drawImage(basePoster, 0, 0);
 
-    const posterWidth = posterRef.current.naturalWidth;
-    const posterHeight = posterRef.current.naturalHeight;
+    const posterWidth = basePoster.naturalWidth;
+    const posterHeight = basePoster.naturalHeight;
     const circleSize = posterWidth * (180 / 600);
     const imageX = posterWidth * (120 / 480);
     const imageY = posterHeight * 0.38;
@@ -142,13 +181,11 @@ const App = () => {
     ctx.drawImage(uploadedImage, drawX, drawY, circleSize, circleSize);
     ctx.restore();
 
-    // Text margin / bounding box setup (align to the red box on the poster)
-    // Tweak these percentages to nudge the box if needed.
-    const showDebugTextBox = false; // flip to false to hide red rectangle
-    const marginLeft = posterWidth * 0.01; // ~7% from left
-    const marginRight = posterWidth * 0.55; // ~77% from left (right edge)
-    const marginTop = posterHeight * 0.62; // ~62% from top
-    const marginBottom = posterHeight * 0.74; // ~74% from top
+    const showDebugTextBox = false;
+    const marginLeft = posterWidth * 0.01;
+    const marginRight = posterWidth * 0.55;
+    const marginTop = posterHeight * 0.62;
+    const marginBottom = posterHeight * 0.74;
     const marginWidth = marginRight - marginLeft;
     const marginHeight = marginBottom - marginTop;
 
@@ -160,15 +197,12 @@ const App = () => {
       ctx.restore();
     }
 
-    // Prepare text drawing styles (color, shadow, alignment)
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     ctx.shadowColor = "rgba(0, 255, 64, 0.5)";
     ctx.shadowBlur = 4;
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
-
-    // Auto-fit: find the largest font size that keeps text inside the box
     const centerX = marginLeft + marginWidth / 2;
 
     const wrapLines = (text: string, maxWidth: number, fontPx: number) => {
@@ -181,7 +215,7 @@ const App = () => {
         for (const word of words) {
           const test = line ? line + " " + word : word;
           const w = ctx.measureText(test).width;
-          if (w > marginWidth && line) {
+          if (w > maxWidth && line) {
             out.push(line);
             line = word;
           } else {
@@ -197,15 +231,14 @@ const App = () => {
       const lineHeight = Math.round(fontPx * 1.1);
       const totalHeight = lines.length * lineHeight;
       if (totalHeight > marginHeight) return false;
-      // width already guarded during wrapping; double-check just in case
       for (const ln of lines) {
         if (ctx.measureText(ln).width > marginWidth) return false;
       }
       return true;
     };
 
-    const maxFont = Math.min(Math.round(marginHeight * 0.8), 100); // upper bound
-    const minFont = 18; // legibility floor
+    const maxFont = Math.min(Math.round(marginHeight * 0.8), 100);
+    const minFont = 18;
     let chosenFont = maxFont;
     let chosenLines: string[] = wrapLines(enteredName, marginWidth, chosenFont);
 
@@ -214,7 +247,6 @@ const App = () => {
       chosenLines = wrapLines(enteredName, marginWidth, chosenFont);
     }
 
-    // Draw lines centered in the box
     const lineHeightPx = Math.round(chosenFont * 1.1);
     const totalTextHeight = chosenLines.length * lineHeightPx;
     let textDrawY = marginTop + (marginHeight - totalTextHeight) / 2 + chosenFont * 0.8;
@@ -224,10 +256,93 @@ const App = () => {
       textDrawY += lineHeightPx;
     }
 
+    return canvas;
+  };
+
+  const buildPosterAssets = () => {
+    const canvas = drawPosterToCanvas();
+    if (!canvas) return null;
+    const dataUrl = canvas.toDataURL("image/png");
+    return { canvas, dataUrl };
+  };
+
+  const handleDownload = () => {
+    const assets = buildPosterAssets();
+    if (!assets) return;
+
     const link = document.createElement("a");
     link.download = "Vote.png";
-    link.href = canvas.toDataURL("image/png");
+    link.href = assets.dataUrl;
     link.click();
+  };
+
+  const handleShare = async (platform: SharePlatform) => {
+    const assets = buildPosterAssets();
+    if (!assets) return;
+
+    const shareMessage = "വോട്ട് ഫോർ UDF വോട്ട് ഫോർ E.K"
+    
+    // enteredName
+    //   ? `Support ${enteredName} with this poster!`
+    //   : "Check out this campaign poster!";
+
+    const navigatorAvailable = typeof navigator !== "undefined";
+    if (navigatorAvailable && "share" in navigator) {
+      try {
+        const blob = await new Promise<Blob | null>((resolve) =>
+          assets.canvas.toBlob((blobResult) => resolve(blobResult), "image/png")
+        );
+        if (blob) {
+          const file = new File([blob], "Vote.png", { type: "image/png" });
+          const canShareFile =
+            "canShare" in navigator ? navigator.canShare?.({ files: [file] }) : true;
+          if (canShareFile) {
+            await navigator.share({
+              files: [file],
+              text: shareMessage,
+              title: "Campaign Poster",
+            });
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Sharing failed, falling back.", error);
+      }
+    }
+
+    switch (platform) {
+      case "whatsapp":
+        window.open(
+          `https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`,
+          "_blank"
+        );
+        break;
+      case "facebook":
+        window.open(
+          `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+            window.location.href
+          )}&quote=${encodeURIComponent(shareMessage)}`,
+          "_blank"
+        );
+        break;
+      case "instagram":
+        try {
+          if (navigatorAvailable && "clipboard" in navigator) {
+            await navigator.clipboard.writeText(shareMessage);
+            alert(
+              "Poster ready! Use Download Poster to save the image, then upload it to your Instagram story. We've copied the caption for you."
+            );
+          } else {
+            alert(
+              "Poster ready! Download it and upload to your Instagram story manually."
+            );
+          }
+        } catch (err) {
+          alert("Poster ready! Download it and upload to your Instagram story manually.");
+          console.error("Could not copy caption", err);
+        }
+        break;
+    }
   };
 
   return (
@@ -300,6 +415,37 @@ const App = () => {
           >
             Download Poster
           </button>
+          <div className="mt-2 flex flex-col gap-2">
+            <span className="text-sm font-semibold text-white text-center uppercase tracking-wide">
+              Share your poster
+            </span>
+            <div className="flex flex-wrap justify-center gap-2">
+              <button
+                onClick={() => handleShare("whatsapp")}
+                className="flex items-center gap-2 rounded-lg bg-emerald-500 px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-600 disabled:bg-gray-400"
+                disabled={!uploadedImage}
+              >
+                <WhatsAppIcon />
+                WhatsApp
+              </button>
+              <button
+                onClick={() => handleShare("instagram")}
+                className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-pink-500 via-purple-500 to-yellow-500 px-3 py-2 text-sm font-semibold text-white shadow-md transition disabled:bg-gray-400 disabled:from-gray-500 disabled:via-gray-500 disabled:to-gray-500"
+                disabled={!uploadedImage}
+              >
+                <InstagramIcon />
+                Instagram
+              </button>
+              <button
+                onClick={() => handleShare("facebook")}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-blue-700 disabled:bg-gray-400"
+                disabled={!uploadedImage}
+              >
+                <FacebookIcon />
+                Facebook
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       <footer className="text-center text-white bg-black p-2  ">
