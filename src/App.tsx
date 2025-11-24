@@ -139,7 +139,7 @@ const App = () => {
     const posterWidth = basePoster.naturalWidth;
     const posterHeight = basePoster.naturalHeight;
     const circleSize = posterWidth * (180 / 600);
-    const imageX = posterWidth * (120 / 480);
+    const imageX = posterWidth * (150 / 520);
     const imageY = posterHeight * 0.38;
 
     ctx.save();
@@ -156,7 +156,7 @@ const App = () => {
     const showDebugTextBox = false;
     const marginLeft = posterWidth * 0.01;
     const marginRight = posterWidth * 0.55;
-    const marginTop = posterHeight * 0.62;
+    const marginTop = posterHeight * 0.55;
     const marginBottom = posterHeight * 0.74;
     const marginWidth = marginRight - marginLeft;
     const marginHeight = marginBottom - marginTop;
